@@ -1,0 +1,83 @@
+---
+
+- block:
+  - name: Get subnets facts filtered by tag:NetworkType - {{ network_type | default('Internal') }}
+    ec2_vpc_subnet_facts:
+      region: "{{ aws_region }}"
+      filters:
+        vpc-id: "{{ vpc_id }}"
+        "tag:NetworkType": "Internal"
+    register: subnet_facts
+    delegate_to: localhost
+    become: False
+
+  - name: Set subnet_ids fact
+    set_fact:
+      subnet_ids: "{{ subnet_facts.subnets | map(attribute='id') | list }}"
+
+  ### End of block
+  when: custom_subnet_list is not defined
+
+
+- name: Create AWS Openshift Master Instance
+  ec2:
+    keypair: "{{ key_pair }}"
+    image: "{{ ami_id }}"
+    region: "{{ aws_region }}"
+    instance_type: "{{ master_instance_type }}"
+    instance_profile_name: "{{ iam_role_name | default(omit) }}"
+    volumes: 
+      - device_name: /dev/sda1
+        volume_type: gp2
+        volume_size: "{{ root_volume_size }}" 
+        delete_on_termination: true
+      - device_name: /dev/sdb
+        volume_type: gp2
+        volume_size: "{{ var_volume_size }}"
+        delete_on_termination: true
+    instance_tags:
+      Name: "{{ project_name }}-openshift-master"
+    # group: "{{ secgroups|default(omit) }}"
+    vpc_subnet_id: "{{ item }}"
+    exact_count: 1
+    count_tag:
+      Name: "{{ inventory_hostname }}"
+      VpcId: "{{ vpc_id }}"
+      project: "{{ project_name }}" 
+    wait: yes
+  with_items:
+    - "{{ subnet_ids[0] }}"
+  register: ec2 
+  become: False
+
+- name: Create AWS Openshift Member Instance
+  ec2:
+    keypair: "{{ key_pair }}"
+    image: "{{ ami_id }}"
+    region: "{{ aws_region }}"
+    instance_type: "{{ minion_instance_type }}"
+    instance_profile_name: "{{ iam_role_name | default(omit) }}"
+    volumes:
+      - device_name: /dev/sda1
+        volume_type: gp2
+        volume_size: "{{ root_volume_size }}" 
+      - device_name: /dev/sdb
+        volume_type: gp2
+        volume_size: "{{ var_volume_size }}"
+        delete_on_termination: true
+    instance_tags:
+      Name: "{{ project_name }}-openshift-node"
+    # group: "{{ secgroups|default(omit) }}"
+    vpc_subnet_id: "{{ item }}"
+    exact_count: 1
+    count_tag:
+      Name: "{{ inventory_hostname }}"
+      VpcId: "{{ vpc_id }}"
+      project: "{{ project_name }}" 
+    wait: yes
+  with_items:
+    - "{{ subnet_ids[0] }}"
+    - "{{ subnet_ids[1] }}"
+    - "{{ subnet_ids[2] }}" 
+  register: ec2
+  become: False

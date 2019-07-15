@@ -1,0 +1,8 @@
+# Basic AMI Creation
+- ec2_ami:
+    instance_id: ${INSTANCE_AMI}
+    wait: yes
+    name: central-openvpn
+    tags:
+      Name: newtest
+      Service: TestService

@@ -1,0 +1,7 @@
+- name: dependency provisioning
+  hosts: all
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: python
+      raw: yum -y install python

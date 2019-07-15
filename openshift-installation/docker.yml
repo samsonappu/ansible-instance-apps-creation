@@ -1,0 +1,21 @@
+---
+-
+    hosts: all
+    tasks:
+	-
+            name: 'Install docker'
+            yum: {name: docker, state: present, disablerepo: extras}
+        -
+            lineinfile:
+              path: /etc/sysconfig/docker-storage
+              regexp: ^DOCKER_STORAGE_OPTIONS=
+              line: 'DOCKER_STORAGE_OPTIONS="--storage-driver devicemapper "'
+        -
+            name: 'Copy a dockersed file '
+            copy: {src: /openshift-ansible/dockersed.sh, dest: /opt/, owner: root, group: root}
+        -
+            name: 'Execute the script'
+            command: 'sh /opt/dockersed.sh'
+        -
+            name: 'Docker Service Restart'
+            command: 'sudo systemctl start docker.service'

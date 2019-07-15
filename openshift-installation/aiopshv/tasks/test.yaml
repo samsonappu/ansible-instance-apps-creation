@@ -1,0 +1,52 @@
+
+- name: Launch openshift master instance
+  ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         count: 1
+         volumes:
+         - device_name: /dev/sda1
+           volume_size: 100
+         vpc_subnet_id: "{{subnets[item.0 | int % subnets | length | int].vpc_pvt_subnet}}"
+         assign_public_ip: no
+         instance_tags:
+          Name: demo-openshift-{{item}}
+  register: ec2
+  with_items:
+   - master-demo
+   - infra-node-1
+
+- name: Launch openshift master instance
+  ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type_node }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         count: 1
+         volumes:
+         - device_name: /dev/sda1
+           volume_size: 300
+         vpc_subnet_id: "{{subnets[item.0 | int % subnets | length | int].vpc_pvt_subnet}}"
+         assign_public_ip: no
+         instance_tags:
+          Name: demo-openshift-{{item}}
+  register: ec2
+  with_items:
+   - worker-node-1
+   - worker-node-2
+   - worker-node-3
+   - worker-node-4
+
+
+- name: Execute Internal IP to Hosts file script
+  command: sh /openshift-ansible/hosts.sh
+
+- name: Execute the Application script
+  command: sh /openshift-ansible/application.sh
+

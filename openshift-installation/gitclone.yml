@@ -1,0 +1,20 @@
+---
+-
+    name: 'Git Project'
+    hosts: masters
+    become: yes
+    tasks:
+        -
+            name: 'GIT | Cloning Openshift Repo'
+            git: 'repo=https://github.com/samsonappu/openshift-ansible.git dest=/opt/ansible clone=yes update=yes force=yes'
+        -
+            replace: {dest: /opt/ansible/roles/openshift_console/files/console-template.yaml, regexp: openshift-image, replace: 'docker.io/openshift/origin-console:latest'}
+        -
+            name: 'Copy a ubuntu key to master instance'
+            copy: {src: /openshift-ansible/ubuntukey.pem, dest: /opt/ansible/playbooks, owner: root, group: root, mode: 0600}
+        -
+            name: 'Copy a hosts file to master instance'
+            copy: {src: /openshift-ansible/hosts, dest: /opt/ansible/playbooks, owner: root, group: root, mode: 493}
+        -
+            replace: {dest: /opt/ansible/playbooks/init/base_packages.yml, regexp: python-docker, replace: python-docker-scripts}
+

@@ -1,0 +1,30 @@
+---
+# defaults file for aiopshv
+
+gather_facts: false
+key_pair: ubuntukey
+instance_type: t2.large
+instance_type_node: t2.xlarge
+security_group: AiOps Jenkins
+ami_id: ami-9cbf9bf9
+aws_region: us-east-2
+instance_count: 1
+vpc_id: vpc-7fd17e17
+inventory_hostname: 
+  - master
+  - node1
+  - node2
+  - node3
+  - infra
+  - lb
+#subnets:
+#  - { zone: "us-east-2a", vpc_pvt_subnet: "subnet-f6c2689e"}
+#  - { zone: "us-east-2b", vpc_pvt_subnet: "subnet-08ec581894cd41779"}
+#  - { zone: "us-east-2c", vpc_pvt_subnet: "subnet-08ec581894cd41779"}
+#custom_subnet_list: 
+#  - subnet-f6c2689e
+#  - subnet-08ec581894cd41779
+#  - subnet-095e246d7e5f9bd30
+#  - subnet-15cd677d
+#  - subnet-cca522b6
+#  - subnet-0728d7e7e0f2c0460
