@@ -1,0 +1,50 @@
+---
+# tasks file for git
+
+-
+    hosts: all
+    tasks:
+        -
+            name: 'Install a yum package in Ansible example'
+            yum: {name: git, state: present}
+        -
+            name: 'Install a yum package in yum utils'
+            raw: 'yum install yum-utils -y'
+        -
+            name: 'Install EPEL repo.'
+            yum: {name: 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm', state: present}
+        -
+            name: 'Import EPEL GPG key.'
+            rpm_key: {key: '/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}', state: present}
+        -
+            name: 'Install remi repo.'
+            yum: {name: 'http://rpms.famillecollet.com/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm', state: present}
+        -
+            name: 'Import remi GPG key.'
+            rpm_key: {key: 'http://rpms.remirepo.net/RPM-GPG-KEY-remi', state: present}
+        -
+            name: 'Install ansible'
+            yum: {name: ansible, state: present}
+        -
+            replace:
+              path: /etc/ansible/ansible.cfg
+              regexp: '#host_key_checking = False'
+              replace: 'host_key_checking = False'
+        -
+            name: 'Install docker'
+            yum: {name: docker-1.13.1-91.git07f3374.el7.centos, state: present}
+        -
+            lineinfile:
+              path: /etc/sysconfig/docker-storage
+              regexp: ^DOCKER_STORAGE_OPTIONS=
+              line: 'DOCKER_STORAGE_OPTIONS="--storage-driver devicemapper "'
+        -
+            name: 'Copy a dockersed file '
+            copy: {src: /openshift-ansible/dockersed.sh, dest: /opt/, owner: root, group: root}
+        -
+            name: 'Execute the script'
+            command: 'sh /opt/dockersed.sh'
+        -
+            name: 'Docker Service Restart'
+            command: 'sudo systemctl start docker.service'
+

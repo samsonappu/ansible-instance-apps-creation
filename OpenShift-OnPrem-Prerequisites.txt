@@ -1,0 +1,148 @@
+OpenShift Documentation
+
+1) First we need to configure our IP Address, Gateway, DNS, PEERDNS and NM_CONTROLLED configuration.
+
+vi /etc/sysconfig/network-scripts/ifcfg-ens192 - #Path may differ 
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=none
+IPADDR=192.168.194.169
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens192
+UUID=cf7208e7-b982-4d00-ad2d-203cf63737fa
+DEVICE=ens192
+ONBOOT=yes
+GATEWAY=192.168.194.1
+DNS1=192.168.194.169 - DNS should be server IP
+IPV6_PRIVACY=no
+PEERDNS=yes
+NM_CONTROLLED=yes
+
+2) Edit the docker daemon file vi /etc/docker/daemon.json -  Enter the docker registry credentials
+	{
+	"insecure-registries": ["192.168.194.126:5000"]
+	}
+
+3) Edit the /etc/yum.repos.d/CentOS-Base.repo file - Enter our repo server details
+	[base]
+name=CentOS-$releasever - Base
+#mirrorlist=http://192.168.194.126/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+baseurl=http://192.168.194.126/base/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#released updates
+[updates]
+name=CentOS-$releasever - Updates
+#mirrorlist=http://192.168.194.126/?release=$releasever&arch=$basearch&repo=updates&infra=$infra
+baseurl=http://192.168.194.126/updates/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#additional packages that may be useful
+[extras]
+name=CentOS-$releasever - Extras
+#mirrorlist=http://192.168.194.126/?release=$releasever&arch=$basearch&repo=extras&infra=$infra
+baseurl=http://192.168.194.126/extras/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-$releasever - Plus
+#mirrorlist=http://192.168.194.126/?release=$releasever&arch=$basearch&repo=centosplus&infra=$infra
+baseurl=http://192.168.194.126/centosplus/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[epel]
+name=CentOS-epel
+#mirrorlist=http://192.168.194.126/?release=$releasever&arch=$basearch&repo=centosplus&infra=$infra
+baseurl=http://192.168.194.126/epel/
+gpgcheck=0
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+
+4) Need to check the YAML format. /opt/openshift-ansible/roles/cockpit-ui/tasks/install.yml
+5) Replace with Docker Registry IP:5000 - playbooks/roles/openshift_cluster_monitoring_operator/defaults/main.yml
+6) Edit /openshift-ansible/playbooks/roles/openshift_facts/defaults/main.yml - docker.io to docker registry URL.
+	---
+openshift_client_binary: "oc"
+
+system_images_registry_dict:
+  openshift-enterprise: "registry.redhat.io"
+  origin: "192.168.194.126:5000"
+system_images_registry: "{{ system_images_registry_dict[openshift_deployment_type | default('origin')] }}"
+
+l_openshift_images_dict:
+  origin: '192.168.194.126:5000/openshift/origin-${component}:${version}'
+  openshift-enterprise: 'registry.redhat.io/openshift3/ose-${component}:${version}'
+  
+7) Edit roles/etcd/defaults/main.yaml
+   ---
+	r_etcd_common_backup_tag: ''
+	r_etcd_common_backup_sufix_name: ''
+
+	l_etcd_static_pod: "{{ (inventory_hostname in groups['oo_masters']) | bool }}"
+
+	# runc, docker, static pod, host
+	r_etcd_common_etcd_runtime: "{{ 'static_pod' if l_etcd_static_pod  else 'host' }}"
+
+	r_etcd_default_version: "3.2.22"
+	# lib_utils_oo_oreg_image is a custom filter defined in roles/lib_utils/filter_plugins/oo_filters.py
+	# This filter attempts to combine oreg_url host with project/component from etcd_image_dict.
+	# "oreg.example.com/openshift3/ose-${component}:${version}"
+	# becomes "oreg.example.com/rhel7/etcd:{{ r_etcd_upgrade_version | default(r_etcd_default_version) }}"
+	osm_etcd_image: "{{ etcd_image_dict[openshift_deployment_type] | lib_utils_oo_oreg_image((oreg_url | default('None'))) }}"
+	etcd_image_dict:
+	origin: "192.168.194.126:5000/coreos/etcd:v{{ r_etcd_upgrade_version | default(r_etcd_default_version) }}"
+	openshift-enterprise: "registry.redhat.io/rhel7/etcd:{{ r_etcd_upgrade_version | default(r_etcd_default_version) }}"
+	etcd_image: "{{ osm_etcd_image }}"
+
+
+8) Edit /opt/openshift-ansible/roles/openshift_repos/templates/CentOS-OpenShift-Origin.repo.j2
+
+	[centos-openshift-origin]
+	name=CentOS OpenShift Origin
+	baseurl=http://192.168.194.126/x86_64/openshift-origin/
+	enabled=1
+	gpgcheck=1
+	gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-PaaS
+
+	[centos-openshift-origin-testing]
+	name=CentOS OpenShift Origin Testing
+	baseurl=http://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin/
+	enabled={{ 1 if openshift_repos_enable_testing else 0 }}
+	gpgcheck=0
+	gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
+
+	[centos-openshift-origin-debuginfo]
+	name=CentOS OpenShift Origin DebugInfo
+	baseurl=http://debuginfo.centos.org/centos/7/paas/x86_64/
+	enabled=0
+	gpgcheck=1
+	gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
+
+	[centos-openshift-origin-source]
+	name=CentOS OpenShift Origin Source
+	baseurl=http://vault.centos.org/centos/7/paas/Source/openshift-origin/
+	enabled=0
+	gpgcheck=1
+	gpgkey=file:///etc/pki/rpm-gpg/openshift-ansible-CentOS-SIG-PaaS
+	
+
+
+	
+
+
+
+

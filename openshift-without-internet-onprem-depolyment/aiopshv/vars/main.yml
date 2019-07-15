@@ -1,0 +1,16 @@
+---
+# vars file for aiopshv
+project_name: test
+key_pair: ubuntukey
+instance_type: t2.micro
+security_group: AiOps Jenkins
+ami_id: ami-0f65671a86f061fcd
+aws_region: us-east-2
+vpc_id: vpc-7fd17e17
+master_instance_type: t2.nano
+minion_instance_type: t2.nano
+vpc_name: mi-aiops
+root_volume_size: 20
+var_volume_size: 40
+openshift_master_count: 1
+openshift_minion_count: 1

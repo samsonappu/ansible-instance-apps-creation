@@ -1,0 +1,30 @@
+- name: Create a openshift instance
+  hosts: localhost
+  gather_facts: False
+  vars:
+    keypair: ubuntukey
+    instance_type: t2.micro
+    security_group: AiOps Jenkins
+    image: ami-0f65671a86f061fcd
+    region: us-east-2
+    instance_count: 1
+  tasks:
+    - name: Launch instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         wait: true
+         volumes:
+             - device_name: /dev/sda1
+               volume_size: 100
+         count: "{{ instance_count }}"
+         region: "{{ region }}"
+         vpc_subnet_id: subnet-15cd677d
+         assign_public_ip: yes
+         instance_tags:
+          Name: openshift-{{item}}
+      register: ec2
+      with_items:
+       - master

@@ -1,0 +1,43 @@
+[OSEv3:children]
+masters
+etcd
+nodes
+
+[OSEv3:vars]
+openshift_master_default_subdomain=10.0.2.93.nip.io
+openshift_hosted_manage_registry=true
+openshift_hosted_manage_router=true
+ansible_ssh_user=centos
+ansible_become=yes
+openshift_master_cluster_method=native
+openshift_master_cluster_hostname=10.0.2.93.nip.io
+openshift_master_cluster_public_hostname=10.0.2.93.nip.io
+openshift_docker_insecure_registries=172.30.0.0/16
+deployment_type=origin
+openshift_enable_docker_excluder=False
+openshift_enable_excluders=False
+openshift_clusterid=openshift
+
+openshift_release=v3.11.0
+openshift_image_tag=v3.11.0
+
+osm_default_node_selector='region=primary'
+openshift_router_selector='region=infra'
+openshift_registry_selector='region=infra'
+openshift_master_api_port=443
+openshift_master_console_port=443
+openshift_disable_check=disk_availability,docker_storage,memory_availability
+
+[nodes]
+10.0.2.93 openshift_schedulable=true  openshift_node_group_name="node-config-master" openshift_node_labels="{'region': 'infra'}"
+10.0.2.207 openshift_node_labels="{'region': 'primary'}" openshift_schedulable=true openshift_node_group_name="node-config-compute"
+10.0.2.4 openshift_node_labels="{'region': 'primary'}" openshift_schedulable=true openshift_node_group_name="node-config-compute"
+10.0.2.16 openshift_node_labels="{'region': 'primary'}" openshift_schedulable=true openshift_node_group_name="node-config-compute"
+10.0.2.232 openshift_node_labels="{'region': 'primary'}" openshift_schedulable=true openshift_node_group_name="node-config-compute"
+10.0.2.193 openshift_node_labels="{'region': 'infra'}" openshift_schedulable=true openshift_node_group_name="node-config-infra"
+
+[masters]
+10.0.2.93
+
+[etcd]
+10.0.2.93
